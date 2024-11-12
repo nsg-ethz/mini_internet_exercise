@@ -44,7 +44,7 @@ if [ -n "$interface_list" ]; then
 fi
 
 
-echo -n "ovs-vsctl " > ovs_command.txt
+echo -n "ovs-vsctl " > "${DIRECTORY}"/ovs_command.txt
 
 ./cleanup/host_links_cleanup.sh "${DIRECTORY}"
 ./cleanup/layer2_cleanup.sh "${DIRECTORY}"
@@ -58,10 +58,10 @@ echo -n "ovs-vsctl " > ovs_command.txt
 
 
 # ensure any failure in the executed commands does not stop the script due to errexit
-bash  < ovs_command.txt || true
-rm -f ovs_command.txt
+bash  < "${DIRECTORY}"/ovs_command.txt || true
+rm -f "${DIRECTORY}"/ovs_command.txt
 
 # delete old running config files
-if [ -e groups ]; then
-  rm -rf groups
+if [ -e "${DIRECTORY}"/groups ]; then
+  rm -rf "${DIRECTORY}"/groups
 fi
