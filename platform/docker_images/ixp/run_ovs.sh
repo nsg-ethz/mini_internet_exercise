@@ -23,6 +23,9 @@ sleep 2
 ovs-vsctl add-br IXP
 ovs-ofctl add-flow IXP action=NORMAL
 
+chmod 0755 /home/.looking_glass.sh
+/home/.looking_glass.sh &
+
 # Loop while the daemons are alive.
 # status returns exit code 0 only if all daemons are are running.
 while $command status > /dev/null ; do
