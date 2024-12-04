@@ -81,14 +81,15 @@ for ((j = 0; j < n_krill_containers; j++)); do
         krill_config_location="${krill_group_location}/krill.conf"
 
         # Add one admin account and one readonly account which can see all certificate authorities
-        admin_passwd=$(awk "\$1 == \"admin\" { print \$0 }" "${DIRECTORY}/groups/krill_passwords.txt" | cut -f 2 -d ' ')
-        readonly_passwd=$(awk "\$1 == \"readonly\" { print \$0 }" "${DIRECTORY}/groups/krill_passwords.txt" | cut -f 2 -d ' ')
+        admin_passwd=$(awk '$1 == "admin" { print $2 }' "${DIRECTORY}/groups/krill_passwords.txt")
+        readonly_passwd=$(awk '$1 == "readonly" { print $2 }' "${DIRECTORY}/groups/krill_passwords.txt")
         {
-            echo "${admin_passwd}" | docker exec -i $krill_container_name krillc config user --id "admin@ethz.ch" \
-                -a "role=admin" | grep "admin" | tr -d '\r'
-            echo "${readonly_passwd}" | docker exec -i $krill_container_name krillc config user --id "readonly@ethz.ch" \
-                -a "role=readonly" | grep "readonly" | tr -d '\r'
-        } >> $krill_config_location
+            # Add admin user
+            docker exec -i "$krill_container_name" bash -c "script -q -c 'krillc config user --id \"admin@ethz.ch\" -a \"role=admin\"' /dev/null" <<< "${admin_passwd}" | grep "admin" | tr -d '\r'
+
+            # Add readonly user
+            docker exec -i "$krill_container_name" bash -c "script -q -c 'krillc config user --id \"readonly@ethz.ch\" -a \"role=readonly\"' /dev/null" <<< "${readonly_passwd}" | grep "readonly" | tr -d '\r'
+        } >> "$krill_config_location"
     fi
 done
 
@@ -127,8 +128,7 @@ for ((k = 0; k < group_numbers; k++)); do
                 passwd=$(awk "\$1 == \"${group_number}\" { print \$0 }" "${DIRECTORY}/groups/passwords.txt" | cut -f 2 -d ' ')
                 {
                     # Emulate a fake tty because krillc only reads input from a tty but not STDIN.
-                    echo "${passwd}" | docker exec -i $krill_container_name krillc config user --id "group${group_number}@ethz.ch" \
-                        -a "role=readwrite" -a "inc_cas=group${group_number}" | grep "group${group_number}" | tr -d '\r'
+                    docker exec -i "$krill_container_name" bash -c "script -q -c 'krillc config user --id \"group${group_number}@ethz.ch\" -a \"role=readwrite\" -a \"inc_cas=group${group_number}\"' /dev/null" <<< "${passwd}" | grep "group${group_number}" | tr -d '\r'
                 } >> $krill_config_location
 
                 if [ "$group_config" == "Config" ]; then

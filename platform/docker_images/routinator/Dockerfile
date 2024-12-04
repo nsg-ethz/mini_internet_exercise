@@ -1,23 +1,26 @@
 # -- stage 1: build static routinator with musl libc for alpine
-FROM d_base:latest as build
+FROM d_base:latest AS build
 
 # Specify what version of routinator should be built.
-ARG ROUTINATOR_VERSION=0.10.2
+ARG ROUTINATOR_VERSION=0.14.0
+ARG BUILD_THREADS=2
 
 RUN apk add wget openssl-dev rust cargo
 
 WORKDIR /tmp/routinator
 
 RUN wget "https://github.com/NLnetLabs/routinator/archive/refs/tags/v${ROUTINATOR_VERSION}.tar.gz" -O - | tar -xz --strip-components=1
-RUN cargo build \
-    --target x86_64-alpine-linux-musl \
+
+RUN CARGO_HTTP_MULTIPLEXING=false cargo install \
+    --jobs ${BUILD_THREADS} \
     --features socks,native-tls \
-    --release \
-    --locked
+    --locked \
+    --path . \
+    --root /tmp/out/
 
 # -- stage 2: create image with the static routinator executable
 FROM d_base_supervisor:latest
-COPY --from=build /tmp/routinator/target/x86_64-alpine-linux-musl/release/routinator /usr/local/bin/
+COPY --from=build /tmp/out/bin/* /usr/local/bin/
 
 # Install rsync and ca-certificates as routinator depends on it
 # Use Tini to ensure that Routinator responds to CTRL-C when run in the

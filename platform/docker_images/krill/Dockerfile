@@ -1,29 +1,26 @@
 # -- stage 1: build static krill with musl libc for alpine
-FROM d_base:latest as build
+FROM d_base:latest AS build
 
 # Specify what version of krill should be built.
-ARG KRILL_VERSION=0.9.0-rc2
+ARG KRILL_VERSION=0.14.5
+ARG BUILD_THREADS=2
 
 RUN apk add wget openssl-dev patch rust cargo
 
 WORKDIR /tmp/krill
 
-COPY krill_cli.patch /
-
 RUN wget "https://github.com/NLnetLabs/krill/archive/refs/tags/v${KRILL_VERSION}.tar.gz" -O - | tar -xz --strip-components=1
-RUN patch -p1 < /krill_cli.patch
-RUN cargo build \
-    --target x86_64-alpine-linux-musl \
-    --features multi-user \
-    --release \
-    --locked
+# Build krill based on the krill's docker image build instructions
+RUN CARGO_HTTP_MULTIPLEXING=false cargo install \
+  --jobs ${BUILD_THREADS} \
+  --locked \
+  --features multi-user \
+  --path . \
+  --root /tmp/out/
 
 # -- stage 2: create image with the static krill executable
 FROM d_base_supervisor:latest
-COPY --from=build /tmp/krill/target/x86_64-alpine-linux-musl/release/krill /usr/local/bin/
-COPY --from=build /tmp/krill/target/x86_64-alpine-linux-musl/release/krillc /usr/local/bin/
-COPY --from=build /tmp/krill/target/x86_64-alpine-linux-musl/release/krillpubd /usr/local/bin/
-COPY --from=build /tmp/krill/target/x86_64-alpine-linux-musl/release/krillpubc /usr/local/bin/
+COPY --from=build /tmp/out/bin/* /usr/local/bin/
 
 RUN apk add --no-cache haproxy curl rsync libgcc ca-certificates openssl openssh-server \
     && ssh-keygen -A \

@@ -240,7 +240,7 @@ for ((j = 0; j < n_groups; j++)); do
                                 # Register CA with local publication server
                                 echo "krillc repo request --server \$KRILL_SERVER \\"
                                 echo "    --ca \"${ca_name}\" > /tmp/${ca_name}_publisher_request.xml"
-                                echo "krillpubc add \\"
+                                echo "krillc pubserver publishers add \\"
                                 echo "    --server \$KRILL_SERVER \\"
                                 echo "    --publisher \"${ca_name}\" \\"
                                 echo "    --request /tmp/${ca_name}_publisher_request.xml > /tmp/${ca_name}_repository_response.xml"
